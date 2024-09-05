@@ -1,0 +1,10 @@
+yfinance
+google-api-python-client
+youtube-transcript-api
+python-dotenv
+requests
+transformers
+torch
+sentencepiece
+fastapi
+uvicorn
