@@ -2,8 +2,14 @@ from googleapiclient.discovery import build
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptAvailable
 import os
 from dotenv import load_dotenv
-from transformers import pipeline
 import re
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 load_dotenv()
 
@@ -23,7 +29,27 @@ STOCKS = {
     'NVDA': 'NVIDIA',
     'JPM': 'JPMorgan Chase',
     'NFLX': 'Netflix',
-    'DIS': 'Disney'
+    'DIS': 'Disney',
+    "SOFI": "SoFi",
+    "ZM": "Zoom",
+    "EL": "Este Lauder",
+    "NKE": "Nike",
+    "ELF": "e.l.f. Beauty",
+    "PYPL": "PayPal",
+    "CAKE": "Cheesecake Factory",
+    "PLTR": "Palantir",
+    "MCD": "McDonald's",
+    "V": "Visa",
+    "MA": "Mastercard",
+    "NTDOY": "Nintendo",
+    "WMT": "Walmart",
+    "HD": "Home Depot",
+    "TGT": "Target",
+    "LOW": "Lowe's",
+    "FUBO": "Fubo",
+    "FDX": "Fedex",
+    "UPS": "UPS",
+    
 }
 
 def get_channel_videos(channel_id, max_results=10, summarize=False):
@@ -43,7 +69,7 @@ def get_channel_videos(channel_id, max_results=10, summarize=False):
             'title': item['snippet']['title'],
             'description': item['snippet']['description'],
             'published_at': item['snippet']['publishedAt'],
-            'transcript': get_video_transcript(item['id']['videoId'], summarize)
+            **get_video_transcript(item['id']['videoId'], summarize)
         }
         videos.append(video)
 
@@ -106,21 +132,29 @@ def identify_stocks(text):
 
 
 def summarize_text(text):
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-    
-    # Split the text into chunks of 1024 tokens (BART's max input length)
-    max_chunk_length = 1024
-    chunks = [text[i:i + max_chunk_length] for i in range(0, len(text), max_chunk_length)]
-    
-    summaries = []
-    for chunk in chunks:
-        summary = summarizer(chunk, max_length=150, min_length=30, do_sample=False)
-        summaries.append(summary[0]['summary_text'])
-    
-    # Combine the summaries
-    final_summary = " ".join(summaries)
-    
-    return final_summary
+
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "llama3-8b-8192",
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant that summarizes text."},
+            {"role": "user", "content": f"Please summarize the following text:\n\n{text}"}
+        ],
+        "max_tokens": 500
+    }
+
+    response = requests.post(GROQ_API_URL, json=payload, headers=headers)
+
+    if response.status_code == 200:
+        summary = response.json()['choices'][0]['message']['content']
+        return summary
+    else:
+        print(f"Error: {response.text}")
+        return "Unable to generate summary due to an error."
 
 if __name__ == "__main__":
     # Example usage
