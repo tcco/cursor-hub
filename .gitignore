@@ -10,6 +10,7 @@ dist/
 build/
 *.egg
 .env
+.env*
 
 # JavaScript
 node_modules/
